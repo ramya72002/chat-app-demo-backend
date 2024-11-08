@@ -6,6 +6,8 @@ const userDetails = require('../controller/userDetails')
 const logout = require('../controller/logout')
 const updateUserDetails = require('../controller/updateUserDetails')
 const searchUser = require('../controller/searchUser')
+const searchUsers = require('../controller/searchUsers')
+const sendEmails = require('../controller/sendEmails')
 
 const router = express.Router()
 
@@ -23,6 +25,8 @@ router.get('/logout',logout)
 router.post('/update-user',updateUserDetails)
 //search user
 router.post("/search-user",searchUser)
+router.post("/search-users",searchUsers)
+router.post("/sendEmails",sendEmails)
 
 
 module.exports = router
