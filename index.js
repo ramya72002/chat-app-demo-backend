@@ -26,7 +26,10 @@ app.use('/api', router);
 
 // Connect to the database and log success
 connectDB().then(() => {
-    console.log("Database connected successfully");
+    server.listen(()=>{
+        console.log("Database connected successfully");
+
+    })
 });
 
 module.exports = app;  // Export the app for Vercel
