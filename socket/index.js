@@ -46,6 +46,8 @@ io.on('connection',async(socket)=>{
             _id : userDetails?._id,
             name : userDetails?.name,
             email : userDetails?.email,
+            phone:userDetails?.phone,
+            provider:userDetails?.provider,
             profile_pic : userDetails?.profile_pic,
             online : onlineUser.has(userId)
         }
