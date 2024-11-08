@@ -8,6 +8,7 @@ const updateUserDetails = require('../controller/updateUserDetails')
 const searchUser = require('../controller/searchUser')
 const searchUsers = require('../controller/searchUsers')
 const sendEmails = require('../controller/sendEmails')
+const sendSms = require('../controller/sendSms')
 
 const router = express.Router()
 
@@ -27,6 +28,8 @@ router.post('/update-user',updateUserDetails)
 router.post("/search-user",searchUser)
 router.post("/search-users",searchUsers)
 router.post("/sendEmails",sendEmails)
+
+router.post("/sendSms",sendSms)
 
 
 module.exports = router

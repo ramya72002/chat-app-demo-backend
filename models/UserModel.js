@@ -14,6 +14,14 @@ const userSchema =  new mongoose.Schema({
         type : String,
         required : [true, "provide password"]
     },
+    phone:{
+        type: String,
+        required:[true,"provide phone"]
+    },
+    provider:{
+        type: String,
+        required:[true,"provide provider"]
+    },
     profile_pic : {
         type : String,
         default : ""
