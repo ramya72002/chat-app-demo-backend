@@ -14,11 +14,9 @@ app.use(cors({
 app.use(express.json())
 app.use(cookiesParser())
 
-const PORT = process.env.PORT || 8080
-
-app.get('/',(request,response)=>{
+app.get('/', (request, response) => {
     response.json({
-        message : "Server running at " + PORT
+        message: "Server running"
     })
 })
 
@@ -26,7 +24,7 @@ app.get('/',(request,response)=>{
 app.use('/api',router)
 
 connectDB().then(()=>{
-    server.listen(PORT,()=>{
-        console.log("server running at " + PORT)
+    server.listen(()=>{
+        console.log("server running at ")
     })
 })
