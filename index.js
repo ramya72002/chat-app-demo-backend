@@ -4,27 +4,29 @@ require('dotenv').config()
 const connectDB = require('./config/connectDB')
 const router = require('./routes/index')
 const cookiesParser = require('cookie-parser')
-const { app } = require('./socket/index') // Only use the app from socket/index
+const { app, server } = require('./socket/index')
 
-// Set up middlewares
+// const app = express()
 app.use(cors({
-    origin: process.env.FRONTEND_URL,
-    credentials: true
+    origin : process.env.FRONTEND_URL,
+    credentials : true
 }))
 app.use(express.json())
 app.use(cookiesParser())
 
-app.get('/', (request, response) => {
+const PORT = process.env.PORT || 8080
+
+app.get('/',(request,response)=>{
     response.json({
-        message: "Server running"
+        message : "Server running at " + PORT
     })
 })
 
-// API endpoints
-app.use('/api', router)
+//api endpoints
+app.use('/api',router)
 
-// Connect to DB
-connectDB()
-
-// Export the app for Vercel
-module.exports = app
+connectDB().then(()=>{
+    server.listen(PORT,()=>{
+        console.log("server running at " + PORT)
+    })
+})
