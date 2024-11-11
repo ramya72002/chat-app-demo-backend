@@ -1,23 +1,32 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
-const connectDB = require('./config/connectDB');
-const router = require('./routes/index');
-const cookiesParser = require('cookie-parser');
-const { app, server } = require('./socket/index');
+const express = require('express')
+const cors = require('cors')
+require('dotenv').config()
+const connectDB = require('./config/connectDB')
+const router = require('./routes/index')
+const cookiesParser = require('cookie-parser')
+const { app, server } = require('./socket/index')
 
+// const app = express()
 app.use(cors({
-    origin: "https://chat-app-demo-frontend-nine.vercel.app",  // Replace with frontend URL
-    credentials: true
-}));
-app.use(express.json());
-app.use(cookiesParser());
+    origin : process.env.FRONTEND_URL,
+    credentials : true
+}))
+app.use(express.json())
+app.use(cookiesParser())
 
-// API Endpoints
-app.use('/api', router);
+const PORT = process.env.PORT || 8080
 
-connectDB().then(() => {
-    server.listen(process.env.PORT || 3000, () => {
-        console.log("Server is running");
-    });
-});
+app.get('/',(request,response)=>{
+    response.json({
+        message : "Server running at " + PORT
+    })
+})
+
+//api endpoints
+app.use('/api',router)
+
+connectDB().then(()=>{
+    server.listen(PORT,()=>{
+        console.log("server running at " + PORT)
+    })
+})
