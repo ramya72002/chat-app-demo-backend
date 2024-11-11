@@ -6,27 +6,25 @@ const router = require('./routes/index')
 const cookiesParser = require('cookie-parser')
 const { app, server } = require('./socket/index')
 
-// const app = express()
+// Middleware
 app.use(cors({
-    origin : process.env.FRONTEND_URL,
-    credentials : true
+    origin: process.env.FRONTEND_URL,
+    credentials: true
 }))
 app.use(express.json())
 app.use(cookiesParser())
 
-const PORT = process.env.PORT || 8080
-
-app.get('/',(request,response)=>{
+// API Endpoints
+app.get('/', (request, response) => {
     response.json({
-        message : "Server running at " + PORT
+        message: "Server running"
     })
 })
+app.use('/api', router)
 
-//api endpoints
-app.use('/api',router)
-
-connectDB().then(()=>{
-    server.listen(PORT,()=>{
-        console.log("server running at " + PORT)
+// Connect to DB and Start Server
+connectDB().then(() => {
+    server.listen(process.env.PORT || 3000, () => {  // Vercel assigns a port
+        console.log("Server is running")
     })
 })
