@@ -5,7 +5,7 @@ const getUserDetailsFromToken = require('../helpers/getUserDetailsFromToken')
 const UserModel = require('../models/UserModel')
 const { ConversationModel,MessageModel } = require('../models/ConversationModel')
 const getConversation = require('../helpers/getConversation')
-
+const GroupModel=require('../models/GroupModel')
 const app = express()
 
 /***socket connection */
@@ -152,6 +152,54 @@ io.on('connection',async(socket)=>{
         io.to(user?._id?.toString()).emit('conversation',conversationSender)
         io.to(msgByUserId).emit('conversation',conversationReceiver)
     })
+
+    // socket.on('fetch-user-groups', async (userId) => {
+    //     console.log("Received fetch-user-groups with userId:", userId);
+    //     try {
+    //         const groups = await GroupModel.find({ members: userId });
+    //         socket.emit('user-groups', groups);  // Send groups back to the client
+    //     } catch (error) {
+    //         console.error('Error fetching user groups:', error);
+    //         socket.emit('user-groups', []);
+    //     }
+    // })
+    
+
+    // // Handle user joining a group (adds socket to group room)
+    // socket.on('joinGroup', (groupId) => {
+    //     socket.join(groupId);  // Join the group room
+    //     console.log(`User ${socket.id} joined group ${groupId}`);
+    // });
+
+    // // Handle sending a group message
+    // socket.on('sendGroupMessage', async (messageData) => {
+    //     const { groupId, sender, text } = messageData;
+    //     const newMessage = new MessageModel({
+    //         groupId,
+    //         senderId: sender,
+    //         message: text,
+    //         timestamp: new Date(),
+    //     });
+
+    //     try {
+    //         await newMessage.save();
+    //         io.to(groupId).emit('groupMessage', newMessage);  // Broadcast to users in the group room
+    //     } catch (error) {
+    //         console.error('Error saving message:', error);
+    //     }
+    // })
+
+    // // Handle new group creation (broadcast to users)
+    // socket.on('createGroup', async (groupData) => {
+    //     const newGroup = new GroupModel(groupData);
+
+    //     try {
+    //         await newGroup.save();
+    //         io.emit('groupCreated', newGroup);  // Notify all connected clients about the new group
+    //     } catch (error) {
+    //         console.error('Error creating group:', error);
+    //     }
+    // })
 
     //disconnect
     socket.on('disconnect',()=>{
