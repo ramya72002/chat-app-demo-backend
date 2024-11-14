@@ -5,7 +5,10 @@ const getUserDetailsFromToken = require('../helpers/getUserDetailsFromToken')
 const UserModel = require('../models/UserModel')
 const { ConversationModel,MessageModel } = require('../models/ConversationModel')
 const getConversation = require('../helpers/getConversation')
+const getGroupConversations = require('../helpers/getGroupConversations')
 const GroupModel=require('../models/GroupModel')
+const {  GroupMessageModel , GroupDetailMessageModel } = require('../models/ConversationModel')
+
 const app = express()
 
 /***socket connection */
@@ -39,7 +42,7 @@ io.on('connection',async(socket)=>{
     io.emit('onlineUser',Array.from(onlineUser))
 
     socket.on('message-page',async(userId)=>{
-        console.log('userId',userId)
+        console.log('userId123456',userId)
         const userDetails = await UserModel.findById(userId).select("-password")
         
         const payload = {
@@ -126,6 +129,8 @@ io.on('connection',async(socket)=>{
         const conversation = await getConversation(currentUserId)
 
         socket.emit('conversation',conversation)
+        const groupconversations=await getGroupConversations(currentUserId)
+        socket.emit('fetch-user-groups',groupconversations)
         
     })
 
@@ -153,16 +158,28 @@ io.on('connection',async(socket)=>{
         io.to(msgByUserId).emit('conversation',conversationReceiver)
     })
 
-    // socket.on('fetch-user-groups', async (userId) => {
-    //     console.log("Received fetch-user-groups with userId:", userId);
-    //     try {
-    //         const groups = await GroupModel.find({ members: userId });
-    //         socket.emit('user-groups', groups);  // Send groups back to the client
-    //     } catch (error) {
-    //         console.error('Error fetching user groups:', error);
-    //         socket.emit('user-groups', []);
-    //     }
-    // })
+    socket.on('fetch-user-groups', async (userId) => {
+        console.log("Received fetch-user-groups with userId:", userId);
+        try {
+            // Fetch the groups where the user is a member
+            const groups = await GroupModel.find({ members: userId }).lean(); // `.lean()` makes the result plain JavaScript objects
+    
+            // Map groups to convert ObjectIds to strings
+            const formattedGroups = groups.map(group => {
+                return {
+                    ...group,
+                    _id: group._id.toString(),  // Convert ObjectId to string
+                    members: group.members.map(memberId => memberId.toString()), // Convert each member's ObjectId to string
+                };
+            });
+    
+            console.log("bbb groups received:", formattedGroups);
+            socket.emit('user-groups', formattedGroups);  // Send groups back to the client
+        } catch (error) {
+            console.error('Error fetching user groups:', error);
+            socket.emit('user-groups', []); // Send empty array if error occurs
+        }
+    });
     
 
     // // Handle user joining a group (adds socket to group room)
