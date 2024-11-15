@@ -2,12 +2,15 @@ const express = require('express')
 const { Server } = require('socket.io')
 const http  = require('http')
 const getUserDetailsFromToken = require('../helpers/getUserDetailsFromToken')
+const updateGroupMessages = require('../helpers/userDataById')
+
 const UserModel = require('../models/UserModel')
 const { ConversationModel,MessageModel } = require('../models/ConversationModel')
 const getConversation = require('../helpers/getConversation')
 const getGroupConversations = require('../helpers/getGroupConversations')
+const getGroupMessages= require('../helpers/getGroupMessages')
 const GroupModel=require('../models/GroupModel')
-const {  GroupMessageModel , GroupDetailMessageModel } = require('../models/ConversationModel')
+const {  GroupMessageModel , GroupDetailMessageModel } = require('../models/GroupMessageModel')
 
 const app = express()
 
@@ -68,6 +71,29 @@ io.on('connection',async(socket)=>{
         socket.emit('message',getConversationMessage?.messages || [])
     })
 
+    socket.on('group-message-page',async(userId,groupId)=>{
+        const groupName = await GroupModel.findById(groupId);
+        socket.emit('group-name', groupName);
+
+       
+        const groupDetails = await GroupMessageModel.find({ groupId: groupId });
+ 
+    if (!groupDetails) {
+      console.log('Group not found');
+      return;
+    }
+
+    // Step 2: Get all messages for the given groupId using the getGroupMessages function
+    const groupMessages = await getGroupMessages(groupId);
+  
+    const updatedGroupMessages=await updateGroupMessages(groupMessages)
+ 
+    // Step 3: Emit the group messages back to the client
+    socket.emit('group-message-user', updatedGroupMessages);
+    console.log('groupMessagesInDetail', updatedGroupMessages);
+
+    })
+
 
     //new message
     socket.on('new message',async(data)=>{
@@ -121,6 +147,58 @@ io.on('connection',async(socket)=>{
         io.to(data?.receiver).emit('conversation',conversationReceiver)
     })
 
+    
+    socket.on('new group message', async (data) => {
+    try {
+        // Check if the group exists
+        const group = await GroupModel.findById(data?.groupId);
+
+        // If the group does not exist, you can send an error message
+        if (!group) {
+            return io.to(data?.sender).emit('message error', 'Group not found.');
+        }
+
+        // Create a new GroupDetailMessage
+        const groupDetailMessage = new GroupDetailMessageModel({
+            text: data.text,
+            imageUrl: data.imageUrl,
+            videoUrl: data.videoUrl,
+            msgByUserId: data?.msgByUserId,
+        });
+
+        // Save the GroupDetailMessage
+        const savedGroupDetailMessage = await groupDetailMessage.save();
+
+        // Create a new GroupMessage and link it to the group
+        const groupMessage = new GroupMessageModel({
+            groupId: data?.groupId,
+            senderId: data?.msgByUserId,
+            message: [savedGroupDetailMessage._id], // Referencing the groupDetailMessage
+        });
+
+        // Save the GroupMessage
+        const savedGroupMessage = await groupMessage.save();
+ 
+        // Populate the group conversation with messages
+        const updatedGroupMessages = await GroupMessageModel.find({ groupId: data?.groupId })
+            .populate('message')
+            .sort({ timestamp: -1 });
+            
+
+        // Emit the updated group messages to all members
+        group.members.forEach((memberId) => {
+            console.log(memberId)
+            io.to(memberId).emit('group-message-user', updatedGroupMessages);
+            // io.to(memberId).emit('fetch-user-groups', updatedGroupMessages);
+        });
+
+    } catch (error) {
+        console.error("Error handling new group message:", error);
+         io.to(data?.sender).emit('message error', 'An error occurred while sending the message.');
+    }
+});
+
+
 
     //sidebar
     socket.on('sidebar',async(currentUserId)=>{
@@ -130,7 +208,7 @@ io.on('connection',async(socket)=>{
 
         socket.emit('conversation',conversation)
         const groupconversations=await getGroupConversations(currentUserId)
-        socket.emit('fetch-user-groups',groupconversations)
+         socket.emit('fetch-user-groups',groupconversations)
         
     })
 
@@ -181,42 +259,6 @@ io.on('connection',async(socket)=>{
         }
     });
     
-
-    // // Handle user joining a group (adds socket to group room)
-    // socket.on('joinGroup', (groupId) => {
-    //     socket.join(groupId);  // Join the group room
-    //     console.log(`User ${socket.id} joined group ${groupId}`);
-    // });
-
-    // // Handle sending a group message
-    // socket.on('sendGroupMessage', async (messageData) => {
-    //     const { groupId, sender, text } = messageData;
-    //     const newMessage = new MessageModel({
-    //         groupId,
-    //         senderId: sender,
-    //         message: text,
-    //         timestamp: new Date(),
-    //     });
-
-    //     try {
-    //         await newMessage.save();
-    //         io.to(groupId).emit('groupMessage', newMessage);  // Broadcast to users in the group room
-    //     } catch (error) {
-    //         console.error('Error saving message:', error);
-    //     }
-    // })
-
-    // // Handle new group creation (broadcast to users)
-    // socket.on('createGroup', async (groupData) => {
-    //     const newGroup = new GroupModel(groupData);
-
-    //     try {
-    //         await newGroup.save();
-    //         io.emit('groupCreated', newGroup);  // Notify all connected clients about the new group
-    //     } catch (error) {
-    //         console.error('Error creating group:', error);
-    //     }
-    // })
 
     //disconnect
     socket.on('disconnect',()=>{
