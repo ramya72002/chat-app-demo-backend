@@ -33,7 +33,6 @@ const updateGroupMessages = async (groupMessages) => {
       return { 
         ...plainMessage, 
         msgByName: userResponse.name, 
-        msgByUserId: undefined  // Remove msgByUserId
       };
     } else {
        
@@ -41,7 +40,6 @@ const updateGroupMessages = async (groupMessages) => {
       return { 
         ...plainMessage, 
         msgByName: "Unknown User", 
-        msgByUserId: undefined  // Remove msgByUserId
       };
     }
   }));
