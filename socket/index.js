@@ -149,54 +149,55 @@ io.on('connection',async(socket)=>{
 
     
     socket.on('new group message', async (data) => {
-    try {
-        // Check if the group exists
-        const group = await GroupModel.findById(data?.groupId);
+        try {
+            // Check if the group exists
+            const group = await GroupModel.findById(data?.groupId);
 
         // If the group does not exist, you can send an error message
-        if (!group) {
-            return io.to(data?.sender).emit('message error', 'Group not found.');
+            if (!group) {
+                return io.to(data?.sender).emit('message error', 'Group not found.');
+            }
+    
+            // Create a new GroupDetailMessage
+            const groupDetailMessage = new GroupDetailMessageModel({
+                text: data.text,
+                imageUrl: data.imageUrl,
+                videoUrl: data.videoUrl,
+                msgByUserId: data?.msgByUserId,
+            });
+    
+            // Save the GroupDetailMessage
+            const savedGroupDetailMessage = await groupDetailMessage.save();
+    
+            // Create a new GroupMessage and link it to the group
+            const groupMessage = new GroupMessageModel({
+                groupId: data?.groupId,
+                senderId: data?.msgByUserId,
+                message: [savedGroupDetailMessage._id], // Referencing the groupDetailMessage
+            });
+    
+            // Save the GroupMessage
+            const savedGroupMessage = await groupMessage.save();
+    
+            // Populate the group conversation with messages
+            const updatedGroupMessages = await GroupMessageModel.find({ groupId: data?.groupId })
+                .populate('message')
+                .sort({ updatedAt: -1 });
+            const messagesList = updatedGroupMessages.map(groupMessage => groupMessage.message[0]);
+
+    
+            // Emit the updated group messages to all members
+            group.members.forEach((memberId) => {
+    
+                // Ensure the memberId is properly converted to string for Socket.IO rooms
+                io.to(memberId.toString()).emit('group-message-user', messagesList);
+            });
+    
+        } catch (error) {
+            console.error("Error handling new group message:", error);
+            io.to(data?.sender).emit('message error', 'An error occurred while sending the message.');
         }
-
-        // Create a new GroupDetailMessage
-        const groupDetailMessage = new GroupDetailMessageModel({
-            text: data.text,
-            imageUrl: data.imageUrl,
-            videoUrl: data.videoUrl,
-            msgByUserId: data?.msgByUserId,
-        });
-
-        // Save the GroupDetailMessage
-        const savedGroupDetailMessage = await groupDetailMessage.save();
-
-        // Create a new GroupMessage and link it to the group
-        const groupMessage = new GroupMessageModel({
-            groupId: data?.groupId,
-            senderId: data?.msgByUserId,
-            message: [savedGroupDetailMessage._id], // Referencing the groupDetailMessage
-        });
-
-        // Save the GroupMessage
-        const savedGroupMessage = await groupMessage.save();
- 
-        // Populate the group conversation with messages
-        const updatedGroupMessages = await GroupMessageModel.find({ groupId: data?.groupId })
-            .populate('message')
-            .sort({ timestamp: -1 });
-            
-
-        // Emit the updated group messages to all members
-        group.members.forEach((memberId) => {
-            console.log(memberId)
-            io.to(memberId).emit('group-message-user', updatedGroupMessages);
-            // io.to(memberId).emit('fetch-user-groups', updatedGroupMessages);
-        });
-
-    } catch (error) {
-        console.error("Error handling new group message:", error);
-         io.to(data?.sender).emit('message error', 'An error occurred while sending the message.');
-    }
-});
+    });
 
 
 
