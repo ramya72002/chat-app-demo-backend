@@ -207,8 +207,8 @@ io.on('connection',async(socket)=>{
         console.log("current user",currentUserId)
 
         const conversation = await getConversation(currentUserId)
-
         socket.emit('conversation',conversation)
+
         const groupconversations=await getGroupConversations(currentUserId)
          socket.emit('fetch-user-groups',groupconversations)
         
