@@ -184,13 +184,14 @@ io.on('connection',async(socket)=>{
                 .populate('message')
                 .sort({ updatedAt: -1 });
             const messagesList = updatedGroupMessages.map(groupMessage => groupMessage.message[0]);
+            const updatedmessagesList=await updateGroupMessages(messagesList)
 
     
             // Emit the updated group messages to all members
             group.members.forEach((memberId) => {
     
                 // Ensure the memberId is properly converted to string for Socket.IO rooms
-                io.to(memberId.toString()).emit('group-message-user', messagesList);
+                io.to(memberId.toString()).emit('group-message-user', updatedmessagesList);
             });
     
         } catch (error) {
