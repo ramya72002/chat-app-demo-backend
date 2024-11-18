@@ -48,7 +48,7 @@ const getGroupConversations = async (userId) => {
 
         // Get the latest message in the group
         const latestMessage = groupMessages.length > 0
-          ? groupMessages[0].message[groupMessages[0].message.length - 1] // Latest message in this group
+          ? groupMessages[groupMessages.length - 1].message[groupMessages[0].message.length - 1]// Latest message in this group
           : null;
 
         return {
