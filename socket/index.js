@@ -276,7 +276,7 @@ io.on('connection',async(socket)=>{
           
           console.log("checkin4",groupConversations)
           group.members.forEach((memberId) => {
-            io.to(memberId.toString()).emit('group-message-user', groupConversations);
+            io.to(memberId.toString()).emit('fetch-user-groups', groupConversations);
           });
         } catch (error) {
           console.error('Error handling group seen:', error);
