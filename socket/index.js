@@ -238,6 +238,52 @@ io.on('connection',async(socket)=>{
         io.to(msgByUserId).emit('conversation',conversationReceiver)
     })
 
+    socket.on('group-seen',async(groupId,userId)=>{
+        try {
+            console.log("checkin0",groupId,userId)
+          // Fetch the group to verify the user is a member
+          const group = await GroupModel.findById(groupId);
+      
+          if (!group || !group.members.includes(userId)) {
+            console.error('User is not a member of this group');
+            return;
+          }
+          console.log("checkin1",group)
+      
+          // Find the group's messages
+          const groupMessages = await GroupMessageModel.find({ groupId }).populate('message');
+          console.log("checkin2",groupMessages)
+          if (!groupMessages) {
+            console.error('No messages found for this group');
+            return;
+          }
+      
+          // Collect all message IDs to be marked as seen
+          const messageIds = groupMessages.flatMap((msg) =>
+            msg.message.filter((detail) => !detail.seen && detail.msgByUserId.toString() !== userId).map((detail) => detail._id)
+          );
+          console.log("checkin3",messageIds)
+
+      
+          // Update seen status with user-specific tracking
+          await GroupDetailMessageModel.updateMany(
+            { _id: { $in: messageIds } },
+            { $addToSet: { seenBy: userId } } // Add userId to seenBy array if not already present
+          );
+      
+          // Send updated group conversation to all members
+          const groupConversations = await getGroupConversations(userId);
+          
+          console.log("checkin4",groupConversations)
+          group.members.forEach((memberId) => {
+            io.to(memberId.toString()).emit('group-message-user', groupConversations);
+          });
+        } catch (error) {
+          console.error('Error handling group seen:', error);
+        }
+      });
+      
+
     socket.on('fetch-user-groups', async (userId) => {
         console.log("Received fetch-user-groups with userId:", userId);
         try {

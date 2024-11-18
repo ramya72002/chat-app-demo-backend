@@ -1,45 +1,46 @@
-const GroupModel = require('../models/GroupModel')
-const { GroupMessageModel, GroupDetailMessageModel } = require("../models/GroupMessageModel");
+const GroupModel = require('../models/GroupModel');
+const { GroupMessageModel } = require("../models/GroupMessageModel");
 
 const getGroupConversations = async (userId) => {
-  if (userId) {
-    try {
-      console.log("Fetching groups for user:", userId);
+  if (!userId) {
+    console.error("Invalid userId provided");
+    return [];
+  }
 
-      // Ensure GroupModel is defined
-      if (!GroupModel) {
-        console.error("GroupModel is not defined");
-      }
+  try {
+    console.log("Fetching groups for user:", userId);
 
-      // Find the groups where the user is a member
-      const userGroups = await GroupModel.find({ members: userId });
-      console.log("User Groups:", userGroups);
+    // Find all groups where the user is a member
+    const userGroups = await GroupModel.find({ members: userId }).populate('members', 'name email'); // Optionally populate members' details
+    console.log("User Groups:", userGroups);
 
-      const groupConversations = [];
+    const groupConversations = await Promise.all(
+      userGroups.map(async (group) => {
+        // Fetch the latest group message for the group
+        const latestGroupMessage = await GroupMessageModel.findOne({ groupId: group._id })
+          .sort({ timestamp: -1 })
+          .populate('message', 'text imageUrl videoUrl seen msgByUserId')
+          .populate('senderId', 'name email'); // Populate sender details if needed
 
-      // For each group, fetch the latest group message
-      for (const group of userGroups) {
-        const latestGroupMessage = await GroupMessageModel.findOne({ groupId: group._id }).sort({ timestamp: -1 });
+        // Calculate unseen messages count for the user
+        const unseenMessages = latestGroupMessage
+          ? latestGroupMessage.message.filter(msg => !msg.seen && msg.msgByUserId.toString() !== userId).length
+          : 0;
 
-        // You can also fetch group detail messages, if needed
-        // const latestGroupDetailMessage = await GroupDetailMessageModel.find({ groupId: group._id }).sort({ createdAt: -1 });
-
-        groupConversations.push({
+        return {
           _id: group._id,
           groupName: group.groupName,
           members: group.members,
-          lastMessage: latestGroupMessage ? latestGroupMessage.message : null,
-          lastMessageTimestamp: latestGroupMessage ? latestGroupMessage.timestamp : null
-        });
-      }
+          lastMessage: latestGroupMessage?.message[latestGroupMessage.message.length - 1] || null,
+          lastMessageTimestamp: latestGroupMessage?.timestamp || null,
+          unseenMessages,
+        };
+      })
+    );
 
-      return groupConversations;
-    } catch (error) {
-      console.error("Error fetching group conversations:", error);
-      return [];
-    }
-  } else {
-    console.error("Invalid userId provided");
+    return groupConversations;
+  } catch (error) {
+    console.error("Error fetching group conversations:", error);
     return [];
   }
 };
