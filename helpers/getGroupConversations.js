@@ -1,5 +1,5 @@
+const { GroupMessageModel, GroupDetailMessageModel } = require("../models/GroupMessageModel");
 const GroupModel = require('../models/GroupModel');
-const { GroupMessageModel } = require("../models/GroupMessageModel");
 
 const getGroupConversations = async (userId) => {
   if (!userId) {
@@ -10,29 +10,53 @@ const getGroupConversations = async (userId) => {
   try {
     console.log("Fetching groups for user:", userId);
 
-    // Find all groups where the user is a member
-    const userGroups = await GroupModel.find({ members: userId }).populate('members', 'name email'); // Optionally populate members' details
-    console.log("User Groups:", userGroups);
+    // Fetch all groups where the user is a member
+    const userGroups = await GroupModel.find({ members: userId }).populate('members', 'name email');
 
+    if (!userGroups.length) {
+      console.log("User is not part of any groups");
+      return [];
+    }
+
+    // Fetch all group messages for the user's groups
+    const groupIds = userGroups.map(group => group._id);
+
+    // Aggregate to find unseen messages per group
     const groupConversations = await Promise.all(
       userGroups.map(async (group) => {
-        // Fetch the latest group message for the group
-        const latestGroupMessage = await GroupMessageModel.findOne({ groupId: group._id })
-          .sort({ timestamp: -1 })
-          .populate('message', 'text imageUrl videoUrl seen msgByUserId')
-          .populate('senderId', 'name email'); // Populate sender details if needed
+        // Fetch group messages for the current group
+        const groupMessages = await GroupMessageModel.find({ groupId: group._id })
+          .populate({
+            path: 'message',
+            populate: {
+              path: 'msgByUserId', // Populate message sender info if needed
+              select: 'name email'
+            }
+          });
 
-        // Calculate unseen messages count for the user
-        const unseenMessages = latestGroupMessage
-          ? latestGroupMessage.message.filter(msg => !msg.seen && msg.msgByUserId.toString() !== userId).length
-          : 0;
+        // Calculate the unseen message count for the user in the current group
+        let unseenMessages = 0;
+
+        groupMessages.forEach((groupMessage) => {
+          groupMessage.message.forEach((message) => {
+            // If the userId is NOT in the seenBy array, it's an unseen message
+            if (!message.seenBy.includes(userId)) {
+              unseenMessages++;
+            }
+          });
+        });
+
+        // Get the latest message in the group
+        const latestMessage = groupMessages.length > 0
+          ? groupMessages[0].message[groupMessages[0].message.length - 1] // Latest message in this group
+          : null;
 
         return {
           _id: group._id,
           groupName: group.groupName,
           members: group.members,
-          lastMessage: latestGroupMessage?.message[latestGroupMessage.message.length - 1] || null,
-          lastMessageTimestamp: latestGroupMessage?.timestamp || null,
+          lastMessage: latestMessage,
+          lastMessageTimestamp: latestMessage ? latestMessage.createdAt : null,
           unseenMessages,
         };
       })

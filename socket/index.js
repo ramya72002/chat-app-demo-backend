@@ -164,6 +164,7 @@ io.on('connection',async(socket)=>{
                 imageUrl: data.imageUrl,
                 videoUrl: data.videoUrl,
                 msgByUserId: data?.msgByUserId,
+                seenBy: [data?.msgByUserId]
             });
     
             // Save the GroupDetailMessage
