@@ -286,7 +286,7 @@ io.on('connection',async(socket)=>{
       
 
     socket.on('fetch-user-groups', async (userId) => {
-        console.log("Received fetch-user-groups with userId:", userId);
+        console.log("Received  user-groups with userId:", userId);
         try {
             // Fetch the groups where the user is a member
             const groups = await GroupModel.find({ members: userId }).lean(); // `.lean()` makes the result plain JavaScript objects
